@@ -1,0 +1,5 @@
+method,verdict,plans,share
+b0_retrieval,valid,6483,0.9905
+b0_retrieval,implausible_area,62,0.0095
+real_test,valid,1299,0.9924
+real_test,implausible_area,10,0.0076

@@ -1,0 +1,31 @@
+# Evaluation settings, read by housegen.evaluate (`make evaluate`).
+
+samples_per_graph: 5      # plans generated for each test graph
+
+# Validity: smallest plausible room area in m², by type. Chosen just under the 0.5th
+# percentile of the training rooms (bedrooms: the 6 m² of the project brief).
+min_area_m2:
+  living: 9.0
+  kitchen: 2.0
+  dining: 3.0
+  bedroom: 6.0
+  bathroom: 1.2
+  corridor: 1.0
+  storage: 0.3
+  balcony: 1.0
+
+# Door placement used to rebuild the graph a plan realises (grid units of 10 cm).
+doors:
+  width: 9.0
+  entrance_width: 10.0
+  min_wall: 5.0           # shortest shared wall that can carry a door
+
+# Novelty: a generated plan whose nearest training plan is at least this similar counts as
+# a copy.
+copy_threshold: 0.9
+
+fid:
+  image_size: 256
+
+retrieval:
+  shortlist: 30           # training graphs re-ranked with the exact edit distance

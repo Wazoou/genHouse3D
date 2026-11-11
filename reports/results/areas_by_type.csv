@@ -1,0 +1,17 @@
+method,room_type,rooms,median_m2,real_median_m2,wasserstein_m2
+real_test,living,1280,23.8,23.8,0.0
+real_test,kitchen,1309,8.82,8.82,0.0
+real_test,dining,11,11.07,11.07,0.0
+real_test,bedroom,2457,14.85,14.85,0.0
+real_test,bathroom,1799,4.42,4.42,0.0
+real_test,corridor,1494,8.11,8.11,0.0
+real_test,storage,351,3.07,3.07,0.0
+real_test,balcony,1268,8.28,8.28,0.0
+b0_retrieval,living,6416,24.72,23.8,0.618
+b0_retrieval,kitchen,6545,8.1,8.82,0.707
+b0_retrieval,dining,39,10.5,11.07,1.031
+b0_retrieval,bedroom,12210,14.98,14.85,0.189
+b0_retrieval,bathroom,8960,4.32,4.42,0.135
+b0_retrieval,corridor,7394,7.79,8.11,0.559
+b0_retrieval,storage,1537,2.85,3.07,0.418
+b0_retrieval,balcony,6250,8.58,8.28,1.359

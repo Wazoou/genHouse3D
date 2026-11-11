@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+/dist/
+/build/
+
+# Data and artefacts (never versioned; see docs/decisions.md for licences)
+/data/
+/checkpoints/
+/runs/
+/outputs/
+*.pt
+*.ckpt
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local tooling
+.claude/

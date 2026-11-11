@@ -1,0 +1,20 @@
+# Decisions
+
+Choices that the project brief leaves open, or where the implementation departs from it.
+
+| Date | Decision | Reason |
+|---|---|---|
+| 2026-11-09 | Main dataset: **Swiss Dwellings v3.0.0** (Zenodo, CC BY 4.0), one plan per apartment, instead of Modified Swiss Dwellings (MSD). | MSD plans are whole building floors (20 to 70 rooms per graph in the official usage notebook), which the 4 to 10 room filter would reject almost entirely. Swiss Dwellings is MSD's parent dataset and carries apartment, building and site identifiers, metric geometry, doors and windows. CC BY 4.0 allows publishing derived samples and model weights with attribution. |
+| 2026-11-09 | RPLAN stays optional. The adapter layer (`housegen.data.build.ADAPTERS`) takes a second dataset without touching the rest. | Access is by request form, for non-commercial research, with redistribution forbidden; the request had not been sent when the project started. |
+| 2026-11-09 | ResPlan not used. | Conflicting licence statements (CC BY 4.0 on GitHub, CC BY-NC-SA 4.0 in its Kaggle metadata), undisclosed source platforms, no building identifier for a leakage-free split. |
+| 2026-11-09 | **Fixed metric grid**: 256 x 256 units of 10 cm (25.6 m canvas), plan centred. The brief asks for a scale relative to each plan's bounding box. | With a per-plan scale, a generated plan has no size in metres: the area checks of the post-processing and the 3D extrusion would need a guessed scale. A fixed scale makes the model learn real sizes. 99.9 % of converted apartments fit in the canvas. |
+| 2026-11-09 | **Rooms share edges** (planar partition); walls have no thickness in the unified format. Raw room outlines are net areas separated by the wall thickness, so the adapter closes the gaps onto the wall centre line. | The 3D pipeline rebuilds walls with configured thicknesses from room edges, and adjacency / overlap checks become exact on the integer grid. |
+| 2026-11-09 | Plans are **rectilinear**: apartments with a slanted or curved wall are rejected (9,738 of 44,957). | The model snaps corners to the grid to get straight, aligned walls; slanted walls would need another representation. |
+| 2026-11-09 | Doors are stored as a **segment on the wall** (two end points) rather than a small rectangle. | The wall has no thickness in the format; the 3D pipeline gives the opening its depth. |
+| 2026-11-09 | Room connections have two kinds: `door` and `open` (rooms touching without a wall). | Open kitchens and corridors opening onto the living room are frequent (about one per plan) and the demo exposes "open kitchen". |
+| 2026-11-09 | Type table: the generic `ROOM` label maps to `bedroom`; when an apartment has no annotated living room, its largest `ROOM` becomes `living` (flagged in `meta.living_inferred`). `LOGGIA` and `TERRACE` map to `balcony`. No `entrance` type: the entrance is the room carrying the entrance door. | The dataset labels most habitable rooms `ROOM`. MSD maps `ROOM` to bedroom as well. The share of inferred living rooms is reported in `reports/data_report.md`. |
+| 2026-11-09 | Split **by site**, not by building. | A site groups the buildings of one development, which often repeat the same layouts. |
+| 2026-11-09 | Duplicates are removed up to translation, quarter turns and mirroring, before the split. | Apartments are stacked on identical floors and mirrored around staircases; training will use the same symmetries as augmentation. Leaving them in would inflate the dataset and blur the novelty metric. |
+| 2026-11-09 | No pandas: the raw CSV is streamed with the standard `csv` module. | Windows application control blocks the pandas DLL on the development machine; one dependency less on Kaggle and Spaces too. |
+| 2026-11-09 | The working directory is the repository root (GitHub: `Wazoou/genHouse3D`), package name `housegen`. | Simplest layout. |
+| 2026-11-09 | Windows are not stored in the unified format. | The brief places windows by rules in the 3D step. The raw windows stay available in the source file if the rules need calibrating. |

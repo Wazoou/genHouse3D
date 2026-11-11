@@ -1,0 +1,50 @@
+# Swiss Dwellings v3.0.0 (Archilyse AG), one plan per apartment.
+name: swiss_dwellings
+adapter: swiss_dwellings
+
+source:
+  url: https://zenodo.org/records/7788422
+  doi: 10.5281/zenodo.7788422
+  file: swiss-dwellings-v3.0.0.zip  # 931,868,205 bytes, md5 3b7915ecd5bf8e492a3e78c598b74123
+  license: CC BY 4.0
+
+raw_csv: data/raw/swiss_dwellings/swiss-dwellings-v3.0.0/geometries.csv
+processed_dir: data/processed/swiss_dwellings
+splits_dir: configs/splits
+
+# Raw `entity_subtype` of areas -> unified room type. ROOM is the generic habitable room of
+# the dataset; when an apartment has no annotated living room, its largest ROOM becomes one.
+type_map:
+  LIVING_ROOM: living
+  LIVING_DINING: living
+  KITCHEN: kitchen
+  KITCHEN_DINING: kitchen
+  DINING: dining
+  BEDROOM: bedroom
+  ROOM: bedroom
+  BATHROOM: bathroom
+  CORRIDOR: corridor
+  CORRIDORS_AND_HALLS: corridor
+  STOREROOM: storage
+  BALCONY: balcony
+  LOGGIA: balcony
+  TERRACE: balcony
+
+# Areas that are not rooms: dropped without rejecting the apartment. Any other subtype
+# (staircase, office, basement...) rejects the apartment.
+ignored_subtypes: [SHAFT, VOID, LIGHTWELL, OUTDOOR_VOID, AIR, ELEVATOR]
+
+geometry:
+  max_wall_m: 0.7        # widest wall closed between two facing room faces
+  align_tol_m: 0.1       # wall faces closer than this are put on one line
+  angle_tol_deg: 12.0    # edges further from both axes make a room non rectilinear...
+  max_diagonal_m: 0.15   # ...unless they are shorter than this
+
+filters:
+  min_rooms: 4
+  max_rooms: 10
+  max_corners_per_room: 12
+
+split:
+  seed: 0
+  fractions: [0.8, 0.1, 0.1]  # train / val / test, by site (a site groups twin buildings)

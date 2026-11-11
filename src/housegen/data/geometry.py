@@ -16,7 +16,8 @@ import math
 from collections.abc import Sequence
 
 import numpy as np
-from shapely.geometry import Polygon, box
+from shapely.geometry import LineString, Point, Polygon, box
+from shapely.ops import linemerge
 
 
 def dominant_angle(polygons: Sequence[Polygon]) -> float:
@@ -230,3 +231,39 @@ def snap_walls(
         out[r][k, axis] = coord[i]
         out[r][(k + 1) % n, axis] = coord[i]
     return out
+
+
+def straight_pieces(geom) -> list[LineString]:
+    """Split any linear geometry into maximal straight two-point segments."""
+    lines = [g for g in getattr(geom, "geoms", [geom]) if g.geom_type == "LineString"]
+    if not lines:
+        return []
+    merged = linemerge(lines) if len(lines) > 1 else lines[0]
+    pieces: list[LineString] = []
+    for line in getattr(merged, "geoms", [merged]):
+        coords = list(line.simplify(0).coords)
+        pieces.extend(LineString(coords[k : k + 2]) for k in range(len(coords) - 1))
+    return pieces
+
+
+def place_on_wall(
+    pieces: list[LineString], center: Point, width: float, max_shift: float, min_wall: float
+) -> tuple[tuple[float, float], tuple[float, float]] | None:
+    """Footprint of an opening of ``width`` centred as close as possible to ``center``.
+
+    The opening is laid on the nearest straight wall piece that is at least ``min_wall`` long
+    and at most ``max_shift`` away; it is shortened or slid to stay within the piece.
+    """
+    best = None
+    for piece in pieces:
+        if piece.length >= min_wall:
+            dist = piece.distance(center)
+            if dist <= max_shift and (best is None or dist < best[0]):
+                best = (dist, piece)
+    if best is None:
+        return None
+    piece = best[1]
+    half = min(width, piece.length) / 2.0
+    t = min(max(piece.project(center), half), piece.length - half)
+    a, b = piece.interpolate(t - half), piece.interpolate(t + half)
+    return (round(a.x, 2), round(a.y, 2)), (round(b.x, 2), round(b.y, 2))

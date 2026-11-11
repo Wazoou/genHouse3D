@@ -1,0 +1,4 @@
+roof_requested,plans,built_as_requested,fallbacks,failure_rate,valid_meshes,mean_build_seconds
+hip,1309,1309,0,0.0,1309,0.043
+gable,1309,752,557,0.4255,1309,0.037
+flat,1309,1309,0,0.0,1309,0.032

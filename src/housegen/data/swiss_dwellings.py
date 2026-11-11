@@ -23,10 +23,17 @@ from pathlib import Path
 import numpy as np
 import shapely
 from shapely import affinity
-from shapely.geometry import LineString, Point, Polygon
-from shapely.ops import linemerge, unary_union
+from shapely.geometry import Point, Polygon
+from shapely.ops import unary_union
 
-from housegen.data.geometry import clean_ring, dominant_angle, rectify_ring, snap_walls
+from housegen.data.geometry import (
+    clean_ring,
+    dominant_angle,
+    place_on_wall,
+    rectify_ring,
+    snap_walls,
+    straight_pieces,
+)
 from housegen.data.schema import GRID_SIZE, METERS_PER_UNIT, OUTSIDE, Door, Plan, Room
 
 SOURCE = "swiss_dwellings"
@@ -130,42 +137,6 @@ def iter_raw_apartments(csv_path: str | Path) -> Iterator[RawApartment | str]:
                 hull = unary_union([g for _, g in rooms]).buffer(0.2)
                 near = [(door_flags[k], door_geoms[k]) for k in sorted(tree.query(hull))]
             yield RawApartment(site, rows[idx[0]][1], floor, apartment, rooms, near)
-
-
-def _straight_pieces(geom) -> list[LineString]:
-    """Split any linear geometry into maximal straight two-point segments."""
-    lines = [g for g in getattr(geom, "geoms", [geom]) if g.geom_type == "LineString"]
-    if not lines:
-        return []
-    merged = linemerge(lines) if len(lines) > 1 else lines[0]
-    pieces: list[LineString] = []
-    for line in getattr(merged, "geoms", [merged]):
-        coords = list(line.simplify(0).coords)
-        pieces.extend(LineString(coords[k : k + 2]) for k in range(len(coords) - 1))
-    return pieces
-
-
-def place_on_wall(
-    pieces: list[LineString], center: Point, width: float, max_shift: float, min_wall: float
-) -> tuple[tuple[float, float], tuple[float, float]] | None:
-    """Footprint of an opening of ``width`` centred as close as possible to ``center``.
-
-    The opening is laid on the nearest straight wall piece that is at least ``min_wall`` long
-    and at most ``max_shift`` away; it is shortened or slid to stay within the piece.
-    """
-    best = None
-    for piece in pieces:
-        if piece.length >= min_wall:
-            dist = piece.distance(center)
-            if dist <= max_shift and (best is None or dist < best[0]):
-                best = (dist, piece)
-    if best is None:
-        return None
-    piece = best[1]
-    half = min(width, piece.length) / 2.0
-    t = min(max(piece.project(center), half), piece.length - half)
-    a, b = piece.interpolate(t - half), piece.interpolate(t + half)
-    return (round(a.x, 2), round(a.y, 2)), (round(b.x, 2), round(b.y, 2))
 
 
 def _add_door(doors: list[Door], door: Door) -> None:
@@ -289,7 +260,7 @@ def convert_apartment(raw: RawApartment, cfg: SwissDwellingsConfig) -> Plan | st
         center = to_grid(Point(middle))
         if len(sides) == 2 and sides[0] != sides[1]:
             i, j = sorted(sides)
-            pieces = _straight_pieces(exteriors[i].intersection(exteriors[j]))
+            pieces = straight_pieces(exteriors[i].intersection(exteriors[j]))
             segment = place_on_wall(pieces, center, width, max_shift, min_wall)
             if segment is None:
                 return "door_without_shared_wall"
@@ -297,7 +268,7 @@ def convert_apartment(raw: RawApartment, cfg: SwissDwellingsConfig) -> Plan | st
         elif len(sides) == 1 and is_entrance:
             i = sides[0]
             others = unary_union([e for k, e in enumerate(exteriors) if k != i])
-            pieces = _straight_pieces(exteriors[i].difference(others))
+            pieces = straight_pieces(exteriors[i].difference(others))
             segment = place_on_wall(pieces, center, width, max_shift, min_wall)
             if segment is not None:
                 _add_door(doors, Door((i, OUTSIDE), segment))

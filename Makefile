@@ -5,7 +5,7 @@ DATA_CONFIG ?= configs/data/swiss_dwellings.yaml
 EXTRA ?= cu126
 RUN = uv run --extra $(EXTRA)
 
-.PHONY: data viz fixtures build3d render train sample overfit resume-check kaggle-bundle experiments evaluate test lint format
+.PHONY: data viz fixtures build3d render train sample overfit resume-check kaggle-bundle experiments space evaluate test lint format
 
 data:  ## raw dataset -> unified plans, filters, de-duplication, frozen split
 	$(RUN) python -m housegen.data.build --config $(DATA_CONFIG)
@@ -45,6 +45,9 @@ resume-check:  ## kill a training run, relaunch it and compare with an uninterru
 
 experiments:  ## sample, clean and evaluate the trained models (before / after clean-up)
 	$(RUN) python -m housegen.experiments --model base=runs/base/ema.pt --variant no_rounding=base
+
+space:  ## assemble the Hugging Face Space folder of the demo in outputs/space/
+	$(RUN) python -m housegen.space --checkpoint $(CHECKPOINT) --out outputs/space
 
 evaluate:  ## metrics of the reference, the baselines and the model -> reports/results/
 	$(RUN) python -m housegen.evaluate --config $(DATA_CONFIG)

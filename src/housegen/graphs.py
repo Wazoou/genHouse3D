@@ -109,3 +109,37 @@ def graph_edit_distance(
 
     search(0, 0, 0)
     return best, budget > 0
+
+
+# ---------------------------------------------------------------- graph selection (V1)
+
+
+def has_open_kitchen(graph: RoomGraph) -> bool:
+    """True when a kitchen opens onto another room without a wall."""
+    kitchens = {i for i, t in enumerate(graph.types) if t == "kitchen"}
+    return any(kind == "open" and (i in kitchens or j in kitchens) for i, j, kind in graph.edges)
+
+
+def select_graph(
+    graphs: list[RoomGraph],
+    bedrooms: int,
+    bathrooms: int,
+    open_kitchen: bool | None = None,
+    seed: int = 0,
+) -> tuple[RoomGraph, bool]:
+    """A real graph matching the request, drawn with ``seed``; and whether it matches exactly.
+
+    The user does not draw a graph: they ask for room counts and get a real graph from the
+    test split that has them (the model then generates a new plan for it). When no graph
+    matches, the closest request is used: bedrooms first, then bathrooms, then the kitchen.
+    """
+    import random
+
+    def gap(g: RoomGraph) -> tuple[int, int, int]:
+        kitchen = 0 if open_kitchen is None else int(has_open_kitchen(g) != open_kitchen)
+        return (abs(g.types.count("bedroom") - bedrooms),
+                abs(g.types.count("bathroom") - bathrooms), kitchen)  # fmt: skip
+
+    best = min(gap(g) for g in graphs)
+    candidates = sorted((g for g in graphs if gap(g) == best), key=lambda g: g.id)
+    return random.Random(seed).choice(candidates), best == (0, 0, 0)

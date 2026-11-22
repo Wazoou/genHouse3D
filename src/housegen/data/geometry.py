@@ -160,6 +160,8 @@ def snap_walls(
     max_wall: float = 0.7,
     min_overlap: float = 0.1,
     align_tol: float = 0.1,
+    max_overlap: float = 1e-6,
+    block_share: float = 0.0,
 ) -> list[np.ndarray]:
     """Close the wall gaps between rectilinear rings so that neighbours share edges.
 
@@ -168,7 +170,10 @@ def snap_walls(
     least ``min_overlap`` metres, with nothing but wall in between. Faces linked this way are
     moved to the middle of their group, i.e. onto the wall centre line. Faces without a
     partner (outer walls) do not move. Finally, faces within ``align_tol`` metres of each
-    other along an axis are put on a common line.
+    other along an axis are put on a common line. With ``max_overlap`` > 0, faces that went
+    past each other by at most that much (rooms overlapping slightly) are paired too.
+    Two faces are not paired when other rooms cover more than ``block_share`` of the strip
+    between them (0: any contact blocks, as for real plans where a thin room may sit there).
     """
     polys = [Polygon(r) for r in rings]
     # One record per edge: ring, index, axis (0: vertical face, 1: horizontal face),
@@ -192,7 +197,7 @@ def snap_walls(
         gap = arr[high, 1][None, :] - arr[low, 1][:, None]
         lo = np.maximum(arr[low, 2][:, None], arr[high, 2][None, :])
         hi = np.minimum(arr[low, 3][:, None], arr[high, 3][None, :])
-        cand = (gap >= -1e-6) & (gap <= max_wall) & (hi - lo >= min_overlap)
+        cand = (gap >= -max_overlap) & (gap <= max_wall) & (hi - lo >= min_overlap)
         for a, b in zip(*np.nonzero(cand), strict=True):
             ia, ib = int(low[a]), int(high[b])
             if recs[ia][0] == recs[ib][0] and recs[ia][1] == recs[ib][1]:
@@ -202,7 +207,11 @@ def snap_walls(
                 c0, c1 = arr[ia, 1] + eps, arr[ib, 1] - eps
                 e0, e1 = lo[a, b] + eps, hi[a, b] - eps
                 strip = box(c0, e0, c1, e1) if axis == 0 else box(e0, c0, e1, c1)
-                if any(p.intersects(strip) for p in polys):
+                others = [p for k, p in enumerate(polys) if k not in (recs[ia][0], recs[ib][0])]
+                if block_share <= 0:
+                    if any(p.intersects(strip) for p in polys):
+                        continue
+                elif sum(p.intersection(strip).area for p in others) > block_share * strip.area:
                     continue
             uf.union(ia, ib)
     groups: dict[int, list[int]] = {}

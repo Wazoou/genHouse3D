@@ -77,6 +77,8 @@ def generate(
             used = diffusion.steps if method == "ddpm" else steps
             meta = {
                 "condition": graph.id,
+                "edges": [list(e) for e in graph.edges],  # the requested graph, for clean-up
+                "entrances": list(graph.entrances),
                 "sample": s,
                 "method": method,
                 "steps": used,

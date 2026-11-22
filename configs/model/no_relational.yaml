@@ -1,0 +1,45 @@
+# Ablation: the main model without relational attention (the graph edges are not seen).
+name: no_relational
+
+data:
+  config: configs/data/swiss_dwellings.yaml
+  split: train
+  val_split: val
+  subset: null           # train on a seeded subset of N plans when set
+
+augment:
+  d4: true               # random symmetry of the square (rotations, mirror)
+  room_ids: true         # random room identities among 16 slots
+
+model:
+  dim: 256
+  depth: 6
+  heads: 8
+  ff_mult: 4
+  fourier: 8             # octaves of the coordinate Fourier features
+  attentions: [room, global]
+
+diffusion:
+  steps: 1000
+  schedule: cosine
+  prediction: eps
+
+train:
+  seed: 0
+  batch_size: 256
+  grad_accum: 1          # effective batch = batch_size x grad_accum
+  lr: 3.0e-4
+  min_lr_ratio: 0.1
+  weight_decay: 0.01
+  warmup_steps: 1000
+  total_steps: 60000
+  grad_clip: 1.0
+  ema_decay: 0.9999
+  amp: true              # fp16 mixed precision (CUDA only; ignored on CPU)
+  log_every: 50
+  eval_every: 2000
+  eval_plans: 512
+  checkpoint_minutes: 30
+  checkpoint_every_steps: null
+  max_minutes: null      # stop cleanly (with a checkpoint) after this many minutes
+  snapshot_every_steps: null

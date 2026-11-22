@@ -271,3 +271,33 @@ def test_evaluate_method_on_real_and_retrieved_plans(real_plans, cfg):
     assert b0["compatibility_ged"] > 0 and b0["diversity"] > 0
     assert np.isnan(b0["fid"])  # no feature extractor given
     assert {r["validity"] for r in rows} == {"valid"}
+
+
+def test_select_graph(real_plans):
+    from housegen.graphs import has_open_kitchen, select_graph
+
+    graphs = [RoomGraph.from_plan(p) for p in real_plans]
+    for g in graphs:
+        found, exact = select_graph(
+            graphs, g.types.count("bedroom"), g.types.count("bathroom"), has_open_kitchen(g)
+        )
+        assert exact and found.types.count("bedroom") == g.types.count("bedroom")
+        assert has_open_kitchen(found) == has_open_kitchen(g)
+    found, exact = select_graph(graphs, bedrooms=9, bathrooms=1)
+    assert not exact and found.types.count("bedroom") == max(
+        g.types.count("bedroom") for g in graphs
+    )
+
+    # Every seed draws among the closest graphs only, and seeds do vary the draw.
+    def counts(g):
+        return g.types.count("bedroom"), g.types.count("bathroom")
+
+    closest = min(abs(counts(g)[0] - 2) + abs(counts(g)[1] - 1) for g in graphs)
+    picks = [select_graph(graphs, 2, 1, None, seed=s)[0] for s in range(30)]
+    assert all(counts(g)[0] - 2 == 0 or closest > 0 for g in picks)
+    assert {counts(g) for g in picks} == {
+        counts(g) for g in graphs if counts(g) == counts(picks[0])
+    }
+    candidates = [g for g in graphs if counts(g) == counts(picks[0])]
+    assert len({g.id for g in picks}) == len(candidates)
+    assert has_open_kitchen(RoomGraph.from_plan(square_plan()))  # living-kitchen is open

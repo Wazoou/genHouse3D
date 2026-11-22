@@ -5,7 +5,7 @@ DATA_CONFIG ?= configs/data/swiss_dwellings.yaml
 EXTRA ?= cu126
 RUN = uv run --extra $(EXTRA)
 
-.PHONY: data viz fixtures build3d render train sample overfit resume-check evaluate test lint format
+.PHONY: data viz fixtures build3d render train sample overfit resume-check kaggle-bundle evaluate test lint format
 
 data:  ## raw dataset -> unified plans, filters, de-duplication, frozen split
 	$(RUN) python -m housegen.data.build --config $(DATA_CONFIG)
@@ -30,6 +30,11 @@ train:  ## train (or resume) the diffusion model; add AMP=--amp for fp16
 
 sample:  ## 5 plans per test graph with DDIM -> outputs/samples/
 	$(RUN) python -m housegen.sample --checkpoint $(CHECKPOINT) --out outputs/samples/test_ddim.jsonl.gz
+
+kaggle-bundle:  ## code.zip + plans.jsonl.gz in outputs/kaggle/, to upload as private datasets
+	mkdir -p outputs/kaggle
+	git archive --format=zip -o outputs/kaggle/code.zip HEAD
+	cp data/processed/swiss_dwellings/plans.jsonl.gz outputs/kaggle/
 
 overfit:  ## sanity check: memorise 32 plans, then regenerate them
 	$(RUN) python -m housegen.overfit --config configs/model/overfit.yaml

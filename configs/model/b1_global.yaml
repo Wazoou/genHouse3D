@@ -43,4 +43,4 @@ train:
   checkpoint_minutes: 30
   checkpoint_every_steps: null
   max_minutes: null      # stop cleanly (with a checkpoint) after this many minutes
-  snapshot_every_steps: null
+  snapshot_every_steps: 20000

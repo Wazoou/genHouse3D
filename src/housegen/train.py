@@ -297,6 +297,12 @@ def run(
             if due or step == total:
                 save()
                 last_ckpt = time.time()
+            snapshot = tc.get("snapshot_every_steps")
+            if snapshot and step % snapshot == 0:  # EMA weights only, to study training length
+                _atomic_save(
+                    {"ema": ema.state_dict(), "config": cfg, "step": step, "git_commit": commit},
+                    out_dir / f"ema_{step:07d}.pt",
+                )
             max_minutes = tc.get("max_minutes")
             if (
                 max_minutes is not None

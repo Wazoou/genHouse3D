@@ -83,7 +83,9 @@ def test_interrupted_training_resumes_exactly(tmp_path, cfg, real_plans):
 
 
 def test_checkpoint_contents_and_ema_export(tmp_path, cfg, real_plans):
+    cfg["train"]["snapshot_every_steps"] = 4
     run(cfg, tmp_path, "cpu", train_plans=real_plans, val_plans=None, log=_quiet)
+    assert sorted(p.name for p in tmp_path.glob("ema_*.pt")) == ["ema_0000004.pt"]
     state = torch.load(tmp_path / "last.pt", weights_only=False)
     expected = {"model", "ema", "optimizer", "scheduler", "scaler", "rng", "step", "minutes",
                 "config", "git_commit", "torch"}  # fmt: skip

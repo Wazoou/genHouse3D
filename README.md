@@ -3,9 +3,10 @@
 Generating novel 3D houses from room graphs: a floorplan diffusion model followed by procedural
 3D extrusion.
 
-> **Status: work in progress.** Milestones 1 (data), 2 (3D pipeline on real plans) and 3
-> (evaluation and retrieval baseline) of 8 are done. The diffusion model is not built yet:
-> every house below is extruded from a **real** plan of the dataset, not from a generated one.
+> **Status: work in progress.** Milestones 1 (data), 2 (3D pipeline on real plans),
+> 3 (evaluation and retrieval baseline) and 4 (diffusion model, debugged) of 8 are done. The
+> model has not been trained on the full dataset yet: every house below is extruded from a
+> **real** plan of the dataset, not from a generated one.
 
 ![Houses extruded from real plans](reports/figures/3d/gallery_real_small.png)
 
@@ -63,6 +64,38 @@ rows below are the references it will be compared with.
 
 Metric definitions are in [docs/decisions.md](docs/decisions.md) and `housegen/metrics.py`.
 
+## Model
+
+A diffusion model over the **corners of the rooms**, after HouseDiffusion (Shabani et al.,
+CVPR 2023), written from the paper:
+
+- one token per corner, conditioned on its room type, corner index, the corner count of its
+  room, a room identity and an entrance flag;
+- in every layer three masked attentions are summed: within the room, across all corners,
+  and between rooms connected in the requested graph
+  ([masks](src/housegen/model/masks.py));
+- noise prediction on coordinates in [-1, 1], cosine schedule, 1,000 steps; DDPM sampling
+  for evaluation, DDIM for the demo; corners are rounded to the 10 cm grid at the end;
+- 10.6 M parameters (6 layers, width 256), timestep through adaLN-Zero, EMA weights.
+
+**Sanity checks before any long training** ([overfit.csv](reports/results/overfit.csv),
+[resume_check.csv](reports/results/resume_check.csv)):
+
+- *Overfitting 32 plans* (no augmentation, 6,000 steps, 4.7 min on an RTX 2070): the loss
+  falls from 0.99 to 0.0024. Regenerated from their graphs, the 32 plans match the originals
+  with a layout similarity of 0.945 on average (0.875 at worst); corners land 10 cm from
+  their target on average (36 cm at worst). These raw corners are not yet cleaned up, so
+  walls of neighbouring rooms rarely coincide exactly and no door can be placed (0 % of the
+  graphs recovered); with a 20 cm tolerance on shared walls, 88 % (DDPM) and 91 % (DDIM)
+  are recovered exactly. Geometric clean-up is the next milestone.
+- *Killed and relaunched*: a run hard-killed at step 700 (last checkpoint at step 500)
+  resumes from step 500 with the same command and ends with EMA weights **identical bit for
+  bit** to an uninterrupted run, on the GPU. The same property is unit-tested on CPU.
+- *Mixed precision*: fp16 with a gradient scaler trains 1.6 times faster on the RTX 2070
+  (33 vs 21 steps/s) with the same loss and no skipped step.
+
+![Training plans and their regeneration](reports/figures/model/overfit_samples.png)
+
 ## Reproduce
 
 Requires [uv](https://docs.astral.sh/uv/) and Python 3.12.
@@ -80,6 +113,8 @@ make viz       # data report
 make build3d   # 20 real plans -> GLB in outputs/, validation, roof statistics
 make render    # gallery figures
 make evaluate  # metrics of the reference and the baselines (downloads the FID weights once)
+make overfit   # sanity check: memorise 32 plans and regenerate them
+make train     # train or resume the diffusion model (AMP=--amp for fp16)
 make test
 ```
 

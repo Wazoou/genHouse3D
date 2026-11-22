@@ -1,0 +1,2 @@
+killed_at_logged_step,checkpoint_step,relaunch_message,final_step,log_steps_continuous,final_loss_interrupted,final_loss_uninterrupted,max_abs_ema_weight_difference,device
+700,500,resumed from step 500 (0.4 min already trained),1500,1,0.006261,0.006261,0.000e+00,cuda

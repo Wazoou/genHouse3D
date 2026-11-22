@@ -1,0 +1,45 @@
+# Overfitting test (brief 4.3): the base model must memorise 32 training plans.
+# No augmentation: each graph then has exactly one target plan.
+name: overfit
+
+data:
+  config: configs/data/swiss_dwellings.yaml
+  split: train
+  val_split: null        # score the 32 training plans themselves
+  subset: 32
+
+augment:
+  d4: false
+  room_ids: false
+
+model:
+  dim: 256
+  depth: 6
+  heads: 8
+  ff_mult: 4
+  fourier: 8
+  attentions: [room, global, relational]
+
+diffusion:
+  steps: 1000
+  schedule: cosine
+  prediction: eps
+
+train:
+  seed: 0
+  batch_size: 32
+  grad_accum: 1
+  lr: 5.0e-4
+  min_lr_ratio: 0.05
+  weight_decay: 0.0
+  warmup_steps: 200
+  total_steps: 6000
+  grad_clip: 1.0
+  ema_decay: 0.999
+  amp: false
+  log_every: 50
+  eval_every: 500
+  eval_plans: 32
+  checkpoint_minutes: 30
+  checkpoint_every_steps: 1000
+  max_minutes: null

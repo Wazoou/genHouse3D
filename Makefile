@@ -5,7 +5,7 @@ DATA_CONFIG ?= configs/data/swiss_dwellings.yaml
 EXTRA ?= cu126
 RUN = uv run --extra $(EXTRA)
 
-.PHONY: data viz fixtures build3d render evaluate test lint format
+.PHONY: data viz fixtures build3d render train sample overfit resume-check evaluate test lint format
 
 data:  ## raw dataset -> unified plans, filters, de-duplication, frozen split
 	$(RUN) python -m housegen.data.build --config $(DATA_CONFIG)
@@ -21,6 +21,21 @@ build3d:  ## real plans -> GLB houses in outputs/, validation and roof statistic
 
 render:  ## gallery figures in reports/figures/3d/
 	$(RUN) python -m housegen.render --config $(DATA_CONFIG)
+
+MODEL_CONFIG ?= configs/model/base.yaml
+CHECKPOINT ?= runs/base/ema.pt
+
+train:  ## train (or resume) the diffusion model; add AMP=--amp for fp16
+	$(RUN) python -m housegen.train --config $(MODEL_CONFIG) $(AMP)
+
+sample:  ## 5 plans per test graph with DDIM -> outputs/samples/
+	$(RUN) python -m housegen.sample --checkpoint $(CHECKPOINT) --out outputs/samples/test_ddim.jsonl.gz
+
+overfit:  ## sanity check: memorise 32 plans, then regenerate them
+	$(RUN) python -m housegen.overfit --config configs/model/overfit.yaml
+
+resume-check:  ## kill a training run, relaunch it and compare with an uninterrupted run
+	$(RUN) python -m housegen.resume_check --config configs/model/overfit.yaml
 
 evaluate:  ## metrics of the reference, the baselines and the model -> reports/results/
 	$(RUN) python -m housegen.evaluate --config $(DATA_CONFIG)

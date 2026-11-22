@@ -85,11 +85,13 @@ class Diffusion:
         eta: float = 0.0,
         generator: torch.Generator | None = None,
         clip: bool = True,
+        callback=None,
     ) -> torch.Tensor:
         """Clean corners (B, L, 2) for the graphs of ``batch``; padding is zero.
 
         ``ddpm`` runs all the training steps with the posterior variance; ``ddim`` runs
-        ``steps`` evenly spaced steps (deterministic when ``eta`` is 0).
+        ``steps`` evenly spaced steps (deterministic when ``eta`` is 0). ``callback(i, x, x0)``
+        is called after each step with the timestep, the new state and the predicted corners.
         """
         device, b = batch.valid.device, batch.valid.shape[0]
         x = torch.randn(batch.x0.shape, generator=generator, device=device)
@@ -106,6 +108,8 @@ class Diffusion:
                 if i > 0:
                     noise = torch.randn(x.shape, generator=generator, device=device)
                     x = x + torch.exp(0.5 * self._at("log_var", t)) * noise
+                if callback is not None:
+                    callback(i, x, x0)
         elif method == "ddim":
             count = min(steps or 100, self.steps)
             times = np.unique(np.linspace(0, self.steps - 1, count).round().astype(int))[::-1]
@@ -120,6 +124,8 @@ class Diffusion:
                 x = np.sqrt(a_prev) * x0 + np.sqrt(max(1 - a_prev - sigma**2, 0.0)) * eps
                 if sigma > 0:
                     x = x + sigma * torch.randn(x.shape, generator=generator, device=device)
+                if callback is not None:
+                    callback(int(i), x, x0)
         else:
             raise ValueError("method must be 'ddpm' or 'ddim'")
         return x * batch.valid[..., None]

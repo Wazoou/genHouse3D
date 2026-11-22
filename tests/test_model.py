@@ -257,3 +257,17 @@ def test_generation_without_final_rounding(real_plans):
         for room_a, room_b in zip(a[0].rooms, b[0].rooms, strict=True):
             assert all(isinstance(v, float) for p in room_b.polygon for v in p)
             assert np.allclose(np.rint(np.asarray(room_b.polygon)), np.asarray(room_a.polygon))
+
+
+def test_sampler_callback(real_plans):
+    diffusion = Diffusion(100)
+    batch = PlanTensors.from_plans(real_plans[:1]).batch(torch.arange(1))
+    seen = []
+    out = diffusion.sample(
+        tiny_model(), batch, "ddim", 10, callback=lambda i, x, x0: seen.append(i)
+    )
+    assert seen == sorted(seen, reverse=True) and len(seen) == 10 and seen[-1] == 0
+    assert out.shape == batch.x0.shape
+    seen.clear()
+    diffusion.sample(tiny_model(), batch, "ddpm", callback=lambda i, x, x0: seen.append(i))
+    assert seen == list(range(99, -1, -1))

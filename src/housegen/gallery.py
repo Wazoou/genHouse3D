@@ -71,7 +71,7 @@ def generate_houses(
             try:
                 result.house = build_house(clean, building, roof=ROOFS[k % len(ROOFS)], seed=seed)
                 result.info = result.house.info
-            except Exception as error:  # noqa: BLE001 - reported, never hidden
+            except Exception as error:
                 result.error = f"{type(error).__name__}: {error}"
         results.append(result)
     return results

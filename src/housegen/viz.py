@@ -30,7 +30,8 @@ ENTRANCE_COLOR = "#d62828"
 
 def draw_plan(plan: Plan, ax, doors: bool = True, margin: float = 6.0, linewidth: float = 1.6):
     """Draw ``plan`` on a matplotlib axis: one colour per room type, doors as wall openings."""
-    for room in plan.rooms:
+    drawable = [r for r in plan.rooms if len(r.polygon) >= 3]  # collapsed rooms are skipped
+    for room in drawable:
         ax.add_patch(
             PolygonPatch(
                 np.asarray(room.polygon),
@@ -53,7 +54,10 @@ def draw_plan(plan: Plan, ax, doors: bool = True, margin: float = 6.0, linewidth
                 solid_capstyle="butt",
                 zorder=3,
             )
-    pts = np.concatenate([np.asarray(r.polygon, dtype=float) for r in plan.rooms])
+    if not drawable:
+        ax.axis("off")
+        return
+    pts = np.concatenate([np.asarray(r.polygon, dtype=float) for r in drawable])
     (x0, y0), (x1, y1) = pts.min(axis=0), pts.max(axis=0)
     half = max(x1 - x0, y1 - y0) / 2 + margin
     ax.set_xlim((x0 + x1) / 2 - half, (x0 + x1) / 2 + half)

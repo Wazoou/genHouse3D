@@ -34,3 +34,16 @@ def test_plot_plans_writes_a_figure(tmp_path, real_plans):
     out = tmp_path / "figures" / "grid.png"
     plot_plans(real_plans, out, ncols=4, titles=[p.id for p in real_plans])
     assert out.stat().st_size > 10_000
+
+
+def test_collapsed_rooms_are_skipped():
+    import dataclasses
+
+    from housegen.data.schema import Room
+
+    plan = square_plan()
+    rooms = (*plan.rooms[:3], Room("bathroom", ()))
+    image = render_plan_image(dataclasses.replace(plan, rooms=rooms), size=64)
+    assert image.shape == (64, 64, 3)
+    empty = dataclasses.replace(plan, rooms=tuple(Room(r.type, ()) for r in plan.rooms), doors=())
+    assert (render_plan_image(empty, size=32) == 255).all()

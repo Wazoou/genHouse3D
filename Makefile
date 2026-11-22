@@ -19,8 +19,9 @@ fixtures:  ## refresh tests/fixtures/plans.jsonl from the built dataset
 build3d:  ## real plans -> GLB houses in outputs/, validation and roof statistics
 	$(RUN) python -m housegen.geometry3d.cli --config $(DATA_CONFIG)
 
-render:  ## gallery figures in reports/figures/3d/
+render:  ## gallery of real plans (reports/figures/3d/) and of 24 random generated houses
 	$(RUN) python -m housegen.render --config $(DATA_CONFIG)
+	$(RUN) python -m housegen.gallery --checkpoint $(CHECKPOINT)
 
 MODEL_CONFIG ?= configs/model/base.yaml
 CHECKPOINT ?= runs/base/ema.pt

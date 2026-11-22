@@ -301,3 +301,17 @@ def test_select_graph(real_plans):
     candidates = [g for g in graphs if counts(g) == counts(picks[0])]
     assert len({g.id for g in picks}) == len(candidates)
     assert has_open_kitchen(RoomGraph.from_plan(square_plan()))  # living-kitchen is open
+
+
+def test_metrics_survive_collapsed_rooms():
+    plan = square_plan()
+    rooms = (*plan.rooms[:3], Room("bathroom", ()))
+    broken = dataclasses.replace(plan, rooms=rooms)
+    labels = metrics.label_map(broken)
+    assert int((labels == 5).sum()) == 0 and int((labels > 0).sum()) == 300
+    empty = dataclasses.replace(plan, rooms=tuple(Room(r.type, ()) for r in plan.rooms), doors=())
+    assert not metrics.label_map(empty).any()
+    assert validity(broken) == "invalid_polygon"
+    # With doors placed from the geometry, the collapsed bathroom loses its door.
+    rebuilt = attach_doors("x", rooms, RoomGraph.from_plan(plan))
+    assert metrics.compatibility(RoomGraph.from_plan(plan), rebuilt)[0] == 1

@@ -38,12 +38,17 @@ def load_checkpoint(
     return model, Diffusion(**cfg["diffusion"]), cfg
 
 
-def decode_rooms(x: np.ndarray, graph: RoomGraph) -> list[Room]:
-    """Rooms from model corners (L, 2): back to the grid, rounded, clipped to the canvas."""
-    grid = np.clip(np.rint(to_grid(x)), 0, GRID_SIZE - 1).astype(int)
+def decode_rooms(x: np.ndarray, graph: RoomGraph, discretize: bool = True) -> list[Room]:
+    """Rooms from model corners (L, 2): back to the grid, clipped to the canvas, and rounded
+    to integer grid units unless ``discretize`` is False (ablation of the final rounding)."""
+    grid = np.clip(to_grid(x), 0, GRID_SIZE - 1)
     rooms, k = [], 0
     for room_type, n in zip(graph.types, graph.corners, strict=True):
-        rooms.append(Room(room_type, tuple((int(a), int(b)) for a, b in grid[k : k + n])))
+        if discretize:
+            corners = tuple((int(a), int(b)) for a, b in np.rint(grid[k : k + n]))
+        else:
+            corners = tuple((round(float(a), 3), round(float(b), 3)) for a, b in grid[k : k + n])
+        rooms.append(Room(room_type, corners))
         k += n
     return rooms
 
@@ -60,6 +65,7 @@ def generate(
     batch_size: int = 256,
     random_room_ids: bool = True,
     eta: float = 0.0,
+    discretize: bool = True,
 ) -> list[list[Plan]]:
     """``per_graph`` plans for each graph, in the order of ``graphs``; deterministic per seed."""
     device = torch.device(device)
@@ -73,7 +79,7 @@ def generate(
         batch = data.batch(torch.arange(len(chunk)), generator, room_ids=random_room_ids)
         x = diffusion.sample(model, batch, method, steps, eta, generator).cpu().numpy()
         for k, (graph, s) in enumerate(chunk):
-            rooms = decode_rooms(x[k, : int(data.lengths[k])], graph)
+            rooms = decode_rooms(x[k, : int(data.lengths[k])], graph, discretize)
             used = diffusion.steps if method == "ddpm" else steps
             meta = {
                 "condition": graph.id,
@@ -100,6 +106,7 @@ def main() -> None:
     parser.add_argument("--method", choices=("ddpm", "ddim"), default="ddim")
     parser.add_argument("--steps", type=int, default=100, help="DDIM steps")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--no-discretize", action="store_true", help="keep float corners")
     parser.add_argument("--device", default=None)
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
@@ -109,7 +116,7 @@ def main() -> None:
     graphs = [RoomGraph.from_plan(p) for p in plans]
     samples = generate(
         model, diffusion, graphs, args.per_graph, args.method, args.steps, args.seed, device,
-        random_room_ids=cfg["augment"]["room_ids"],
+        random_room_ids=cfg["augment"]["room_ids"], discretize=not args.no_discretize,
     )  # fmt: skip
     count = write_plans(args.out, [p for group in samples for p in group])
     print(f"wrote {count} plans to {args.out}")

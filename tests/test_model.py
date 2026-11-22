@@ -247,3 +247,13 @@ def test_ema():
     copy = EMA(torch.nn.Linear(2, 1, bias=False), decay=0.9)
     copy.load_state_dict(ema.state_dict())
     assert copy.decay == 0.5 and torch.equal(copy.model.weight, ema.model.weight)
+
+
+def test_generation_without_final_rounding(real_plans):
+    graphs = [RoomGraph.from_plan(p) for p in real_plans[:2]]
+    rounded = generate(tiny_model(), Diffusion(50), graphs, method="ddim", steps=5)
+    floats = generate(tiny_model(), Diffusion(50), graphs, method="ddim", steps=5, discretize=False)
+    for a, b in zip(rounded, floats, strict=True):
+        for room_a, room_b in zip(a[0].rooms, b[0].rooms, strict=True):
+            assert all(isinstance(v, float) for p in room_b.polygon for v in p)
+            assert np.allclose(np.rint(np.asarray(room_b.polygon)), np.asarray(room_a.polygon))

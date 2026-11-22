@@ -5,7 +5,7 @@ DATA_CONFIG ?= configs/data/swiss_dwellings.yaml
 EXTRA ?= cu126
 RUN = uv run --extra $(EXTRA)
 
-.PHONY: data viz fixtures build3d render train sample overfit resume-check kaggle-bundle evaluate test lint format
+.PHONY: data viz fixtures build3d render train sample overfit resume-check kaggle-bundle experiments evaluate test lint format
 
 data:  ## raw dataset -> unified plans, filters, de-duplication, frozen split
 	$(RUN) python -m housegen.data.build --config $(DATA_CONFIG)
@@ -42,6 +42,9 @@ overfit:  ## sanity check: memorise 32 plans, then regenerate them
 
 resume-check:  ## kill a training run, relaunch it and compare with an uninterrupted run
 	$(RUN) python -m housegen.resume_check --config configs/model/overfit.yaml
+
+experiments:  ## sample, clean and evaluate the trained models (before / after clean-up)
+	$(RUN) python -m housegen.experiments --model base=runs/base/ema.pt --variant no_rounding=base
 
 evaluate:  ## metrics of the reference, the baselines and the model -> reports/results/
 	$(RUN) python -m housegen.evaluate --config $(DATA_CONFIG)

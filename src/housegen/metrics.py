@@ -40,7 +40,10 @@ def label_map(plan: Plan, size: int = MAP_SIZE, cell: float = MAP_CELL) -> np.nd
     or turning the plan mirrors or turns the map exactly. A cell belongs to a room when its
     centre is inside the room or on its boundary; where rooms overlap, the later room wins.
     """
-    pts = np.concatenate([np.asarray(r.polygon, dtype=float) for r in plan.rooms])
+    drawn = [np.asarray(r.polygon, dtype=float) for r in plan.rooms if len(r.polygon) >= 3]
+    if not drawn:  # every room collapsed
+        return np.zeros((size, size), dtype=np.uint8)
+    pts = np.concatenate(drawn)
     center = (pts.min(axis=0) + pts.max(axis=0)) / 2.0
     ticks = (np.arange(size) - (size - 1) / 2.0) * cell
     xs, ys = np.meshgrid(center[0] + ticks, center[1] + ticks)

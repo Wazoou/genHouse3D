@@ -1,5 +1,7 @@
 # genHouse3D
 
+*[Version française](README.fr.md)*
+
 Generating novel 3D houses from room graphs: a floorplan diffusion model followed by procedural
 3D extrusion.
 

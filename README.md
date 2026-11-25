@@ -136,4 +136,4 @@ Design choices are logged in [docs/decisions.md](docs/decisions.md).
   model code is written from the paper, not taken from the official implementation, whose
   licence restricts it to non-commercial use.
 - **Libraries**: shapely, trimesh, numpy, networkx, matplotlib, PyTorch, pytorch-fid.
-- **Code**: MIT.
+- **Code**: [MIT](LICENSE).

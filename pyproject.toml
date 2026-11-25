@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Generating novel 3D houses from room graphs: a floorplan diffusion model followed by procedural 3D extrusion."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
 dependencies = [
     "matplotlib>=3.9",
     "networkx>=3.3",

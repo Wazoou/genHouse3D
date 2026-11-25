@@ -127,9 +127,13 @@ Design choices are logged in [docs/decisions.md](docs/decisions.md).
 
 - **Data**: Standfest et al., *Swiss Dwellings: a large dataset of apartment models* (v3.0.0),
   Archilyse AG, [doi:10.5281/zenodo.7788422](https://doi.org/10.5281/zenodo.7788422),
-  CC BY 4.0. The plans drawn in this repository and the test fixtures are derived from it
-  (rotated, rectified, snapped to a grid, converted to the project format).
+  licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Everything derived
+  from it in this repository (the plans drawn in the figures, the test fixtures, the split
+  files, `app/graphs_test.json`, the result tables) is shared under the same licence. Changes:
+  apartments were rotated, rectified, snapped to a grid and converted to the project format.
 - **Model inspiration**: Shabani, Hosseini and Furukawa, *HouseDiffusion: Vector Floorplan
-  Generation via a Diffusion Model with Discrete and Continuous Denoising*, CVPR 2023.
+  Generation via a Diffusion Model with Discrete and Continuous Denoising*, CVPR 2023. The
+  model code is written from the paper, not taken from the official implementation, whose
+  licence restricts it to non-commercial use.
 - **Libraries**: shapely, trimesh, numpy, networkx, matplotlib, PyTorch, pytorch-fid.
 - **Code**: MIT.
